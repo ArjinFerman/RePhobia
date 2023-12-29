@@ -18,7 +18,7 @@ var boid_vel = []
 
 # GPU Variables
 var SIMULATE_GPU = false
-var rd := RenderingServer.create_local_rendering_device()
+var rd : RenderingDevice
 var params_uniform : RDUniform
 var params_buffer: RID
 var boid_data_buffer : RID
@@ -26,6 +26,8 @@ var bindings : Array
 var boid_compute_shader : RID
 var pipeline : RID
 var uniform_set : RID
+var boid_pos_buffer : RID
+var boid_vel_buffer : RID
 
 func _1d_to_2d(index_1d):
 	return Vector2(int(index_1d / IMAGE_SIZE), int(index_1d % IMAGE_SIZE))
@@ -40,6 +42,7 @@ func _ready():
 	$BoidParticles.process_material.set_shader_parameter("boid_data", boid_data_texture)
 
 	if SIMULATE_GPU:
+		rd = RenderingServer.create_local_rendering_device()
 		_setup_compute_shader()
 
 func _generate_boids():
@@ -114,10 +117,10 @@ func _setup_compute_shader():
 	boid_compute_shader = rd.shader_create_from_spirv(shader_spirv)
 	pipeline = rd.compute_pipeline_create(boid_compute_shader)
 	
-	var boid_pos_buffer = _generate_vec2_buffer(boid_pos)
+	boid_pos_buffer = _generate_vec2_buffer(boid_pos)
 	var boid_pos_uniform = _generate_uniform(boid_pos_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 0)
 	
-	var boid_vel_buffer = _generate_vec2_buffer(boid_vel)
+	boid_vel_buffer = _generate_vec2_buffer(boid_vel)
 	var boid_vel_uniform = _generate_uniform(boid_vel_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 1)
 	
 	params_buffer = _generate_parameter_buffer(0)
@@ -178,3 +181,12 @@ func _update_boids_gpu(delta):
 	rd.compute_list_end()
 	rd.submit()
 	rd.sync()
+
+func _exit_tree():
+	if SIMULATE_GPU:
+		rd.free_rid(boid_compute_shader)
+		rd.free_rid(boid_data_buffer)
+		rd.free_rid(params_buffer)
+		rd.free_rid(boid_pos_buffer)
+		rd.free_rid(boid_vel_buffer)
+		rd.free()
