@@ -71,7 +71,6 @@ void main() {
         my_rot *= -1.0;
     }
 
-    //my_vel = normalize(my_vel) * params.max_vel;
     float vel_mag = length(my_vel);
     vel_mag = clamp(vel_mag, params.min_vel, params.max_vel);
     my_vel = normalize(my_vel) * vel_mag;
