@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3 uid="uid://b8xbs060jdgew"]
+
+[ext_resource type="Script" path="res://main.gd" id="1_uvhkp"]
+[ext_resource type="Shader" path="res://boid_particle.gdshader" id="2_wo350"]
+[ext_resource type="Texture2D" uid="uid://cqr7cxcfwdkhe" path="res://boid.png" id="3_a3tp2"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_uovvq"]
+shader = ExtResource("2_wo350")
+shader_parameter/scale = 0.5
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_uvhkp")
+friend_radius = 20
+alignment_factor = 5
+cohesion_factor = 2
+separation_factor = 4
+
+[node name="BoidParticles" type="GPUParticles2D" parent="."]
+scale = Vector2(0.5, 0.5)
+process_material = SubResource("ShaderMaterial_uovvq")
+texture = ExtResource("3_a3tp2")
