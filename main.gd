@@ -10,7 +10,7 @@ var boid_pos = []
 var boid_vel = []
 
 @export var friend_radius = 30
-@export var boid_max_vel = 50
+@export var max_vel = 50
 @export var alignment_factor = 10
 @export var cohesion_factor = 1
 @export var separation_factor = 2
@@ -31,7 +31,7 @@ func _generate_boids():
 	for i in IMAGE_SIZE:
 		for j in IMAGE_SIZE:
 			boid_pos.append(Vector2(randf()*get_viewport_rect().size.x, randf()*get_viewport_rect().size.y))
-			boid_vel.append(Vector2(randf_range(-1.,1.)*boid_max_vel, randf_range(-1.,1.)*boid_max_vel))
+			boid_vel.append(Vector2(randf_range(-1.,1.)*max_vel, randf_range(-1.,1.)*max_vel))
 
 func _process(_delta):
 	get_window().title = "Boids: " + str(NUM_BOIDS) + " FPS: " + str(Engine.get_frames_per_second())
@@ -64,7 +64,7 @@ func _update_boids_cpu(_delta):
 			separation_vec /= num_friends
 			boid_vel[i] += separation_vec.normalized() * separation_factor
 		
-		boid_vel[i] = boid_vel[i].normalized() * boid_max_vel		
+		boid_vel[i] = boid_vel[i].normalized() * max_vel		
 		boid_pos[i] += boid_vel[i] * _delta
 		boid_pos[i] = Vector2(wrapf(boid_pos[i].x, 0, get_viewport_rect().size.x,),
 							  wrapf(boid_pos[i].y, 0, get_viewport_rect().size.y,))
