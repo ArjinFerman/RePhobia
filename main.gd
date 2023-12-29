@@ -3,7 +3,7 @@ extends Node2D
 var boid_data : Image
 var boid_data_texture : ImageTexture
 
-var NUM_BOIDS = 22000
+var NUM_BOIDS = 150
 var IMAGE_SIZE = int(sqrt(NUM_BOIDS) + 1)
 
 var boid_pos = []
@@ -17,7 +17,7 @@ var boid_vel = []
 @export_range(0,100) var separation_factor = 2
 
 # GPU Variables
-var SIMULATE_GPU = true
+var SIMULATE_GPU = false
 var rd := RenderingServer.create_local_rendering_device()
 var params_uniform : RDUniform
 var params_buffer: RID
@@ -60,37 +60,43 @@ func _process(_delta):
 
 func _update_boids_cpu(_delta):
 	for i in NUM_BOIDS:
-		var current_boid = boid_pos[i]
-		var average_vel = Vector2.ZERO
+		var my_pos = boid_pos[i]
+		var my_vel = boid_vel[i]
+		var avg_vel = Vector2.ZERO
 		var midpoint = Vector2.ZERO
 		var separation_vec = Vector2.ZERO
 		var num_friends = 0
 		for j in NUM_BOIDS:
 			if i != j:
-				var other_boid = boid_pos[j]
-				var dist = current_boid.distance_to(other_boid)
+				var other_pos = boid_pos[j]
+				var other_vel = boid_vel[j]
+				var dist = my_pos.distance_to(other_pos)
 				if(dist < friend_radius):
 					num_friends += 1
-					average_vel += boid_vel[j]
-					midpoint += other_boid
-					separation_vec += current_boid - other_boid
+					avg_vel += other_vel
+					midpoint += other_pos
+					separation_vec += my_pos - other_pos
+					
 		if(num_friends > 0):
-			average_vel /= num_friends
-			boid_vel[i] += (average_vel - boid_vel[i]).normalized() * alignment_factor
+			avg_vel /= num_friends
+			my_vel += (avg_vel - my_pos).normalized() * alignment_factor
 			
 			midpoint /= num_friends
-			boid_vel[i] += (midpoint - current_boid).normalized() * cohesion_factor
+			my_vel += (midpoint - my_pos).normalized() * cohesion_factor
 			
 			separation_vec /= num_friends
-			boid_vel[i] += separation_vec.normalized() * separation_factor
+			my_vel += separation_vec.normalized() * separation_factor
 		
-		var vel_mag = boid_vel[i].length()
+		var vel_mag = my_vel.length()
 		vel_mag = clamp(vel_mag, min_vel, max_vel)
-		boid_vel[i] = boid_vel[i].normalized() * vel_mag		
-		boid_pos[i] += boid_vel[i] * _delta
-		boid_pos[i] = Vector2(wrapf(boid_pos[i].x, 0, get_viewport_rect().size.x,),
-							  wrapf(boid_pos[i].y, 0, get_viewport_rect().size.y,))
-							
+		my_vel = my_vel.normalized() * vel_mag		
+		my_pos += my_vel * _delta
+		my_pos = Vector2(wrapf(my_pos.x, 0, get_viewport_rect().size.x,),
+						 wrapf(my_pos.y, 0, get_viewport_rect().size.y,))
+		
+		boid_pos[i] = my_pos
+		boid_vel[i] = my_vel 
+		
 func _update_data_texture():
 	if SIMULATE_GPU:
 		var boid_data_image_data := rd.texture_get_data(boid_data_buffer, 0)
