@@ -1,33 +1,35 @@
 extends Node2D
+var DEBUG_LOG = false
 
-var boid_data : Image
-var boid_data_texture : ImageTexture
-
-var NUM_BOIDS = 150
-var IMAGE_SIZE = int(sqrt(NUM_BOIDS) + 1)
-
+var NUM_BOIDS = 100
 var boid_pos = []
 var boid_vel = []
 
-@export_range(0, 50) var friend_radius = 30
-@export_range(0,100) var min_vel = 25
-@export_range(0,100) var max_vel = 50
-@export_range(0,100) var alignment_factor = 10
-@export_range(0,100) var cohesion_factor = 1
-@export_range(0,100) var separation_factor = 2
+var IMAGE_SIZE = int(ceil(sqrt(NUM_BOIDS)))
+var boid_data : Image
+var boid_data_texture : ImageTexture
+
+@export_range(0, 50) var friend_radius = 30.0
+@export_range(0, 50) var avoid_radius = 15.0
+@export_range(0,100) var min_vel = 25.0
+@export_range(0,100) var max_vel = 50.0
+@export_range(0,100) var alignment_factor = 10.0
+@export_range(0,100) var cohesion_factor = 1.0
+@export_range(0,100) var separation_factor = 2.0
 
 # GPU Variables
-var SIMULATE_GPU = false
+var SIMULATE_GPU = true
 var rd : RenderingDevice
-var params_uniform : RDUniform
-var params_buffer: RID
-var boid_data_buffer : RID
-var bindings : Array
 var boid_compute_shader : RID
 var pipeline : RID
+var bindings : Array
 var uniform_set : RID
+
 var boid_pos_buffer : RID
 var boid_vel_buffer : RID
+var params_buffer: RID
+var params_uniform : RDUniform
+var boid_data_buffer : RID
 
 func _1d_to_2d(index_1d):
 	return Vector2(int(index_1d / IMAGE_SIZE), int(index_1d % IMAGE_SIZE))
@@ -37,30 +39,35 @@ func _ready():
 	boid_data_texture = ImageTexture.create_from_image(boid_data)
 	
 	_generate_boids()
+	if DEBUG_LOG:
+		for i in boid_pos.size():
+			print("Boid: ", i, " Pos: ", boid_pos[i], " Vel: ", boid_vel[i])
 	
 	$BoidParticles.amount = NUM_BOIDS
 	$BoidParticles.process_material.set_shader_parameter("boid_data", boid_data_texture)
 
 	if SIMULATE_GPU:
-		rd = RenderingServer.create_local_rendering_device()
 		_setup_compute_shader()
+		_update_boids_gpu(0)
 
 func _generate_boids():
-	for i in IMAGE_SIZE:
-		for j in IMAGE_SIZE:
-			boid_pos.append(Vector2(randf()*get_viewport_rect().size.x, randf()*get_viewport_rect().size.y))
-			boid_vel.append(Vector2(randf_range(-1.,1.)*max_vel, randf_range(-1.,1.)*max_vel))
+	for i in NUM_BOIDS:
+		boid_pos.append(Vector2(randf()*get_viewport_rect().size.x, randf()*get_viewport_rect().size.y))
+		boid_vel.append(Vector2(randf_range(-1.,1.)*max_vel, randf_range(-1.,1.)*max_vel))
 
-func _process(_delta):
-	get_window().title = "Boids: " + str(NUM_BOIDS) + " FPS: " + str(Engine.get_frames_per_second())
+func _process(_delta):	
+	get_window().title = "GPU: " + str(SIMULATE_GPU) + " / Boids: " + str(NUM_BOIDS) + " / FPS: " + str(Engine.get_frames_per_second())
 	
 	if SIMULATE_GPU:
-		_update_boids_gpu(_delta)
+		_sync_boids_gpu()
 	else:
 		_update_boids_cpu(_delta)
 		
 	_update_data_texture()
 
+	if SIMULATE_GPU:
+		_update_boids_gpu(_delta)
+		
 func _update_boids_cpu(_delta):
 	for i in NUM_BOIDS:
 		var my_pos = boid_pos[i]
@@ -69,6 +76,7 @@ func _update_boids_cpu(_delta):
 		var midpoint = Vector2.ZERO
 		var separation_vec = Vector2.ZERO
 		var num_friends = 0
+		var num_avoids = 0
 		for j in NUM_BOIDS:
 			if i != j:
 				var other_pos = boid_pos[j]
@@ -78,7 +86,9 @@ func _update_boids_cpu(_delta):
 					num_friends += 1
 					avg_vel += other_vel
 					midpoint += other_pos
-					separation_vec += my_pos - other_pos
+					if(dist < avoid_radius):
+						num_avoids += 1
+						separation_vec += my_pos - other_pos
 					
 		if(num_friends > 0):
 			avg_vel /= num_friends
@@ -87,8 +97,8 @@ func _update_boids_cpu(_delta):
 			midpoint /= num_friends
 			my_vel += (midpoint - my_pos).normalized() * cohesion_factor
 			
-			separation_vec /= num_friends
-			my_vel += separation_vec.normalized() * separation_factor
+			if(num_avoids > 0):
+				my_vel += separation_vec.normalized() * separation_factor
 		
 		var vel_mag = my_vel.length()
 		vel_mag = clamp(vel_mag, min_vel, max_vel)
@@ -99,7 +109,25 @@ func _update_boids_cpu(_delta):
 		
 		boid_pos[i] = my_pos
 		boid_vel[i] = my_vel 
+
+func _update_boids_gpu(delta):
+	rd.free_rid(params_buffer)
+	params_buffer = _generate_parameter_buffer(delta)
+	params_uniform.clear_ids()
+	params_uniform.add_id(params_buffer)
+	uniform_set = rd.uniform_set_create(bindings, boid_compute_shader, 0)
+	
+	var compute_list := rd.compute_list_begin()
+	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
+	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
+	
+	rd.compute_list_dispatch(compute_list, ceil(NUM_BOIDS/1024.), 1, 1)
+	rd.compute_list_end()
+	rd.submit()
 		
+func _sync_boids_gpu():
+	rd.sync()
+	
 func _update_data_texture():
 	if SIMULATE_GPU:
 		var boid_data_image_data := rd.texture_get_data(boid_data_buffer, 0)
@@ -112,6 +140,9 @@ func _update_data_texture():
 	boid_data_texture.update(boid_data)
 
 func _setup_compute_shader():
+	
+	rd = RenderingServer.create_local_rendering_device()
+	
 	var shader_file := load("res://compute_shaders/boid_simulation.glsl")
 	var shader_spirv: RDShaderSPIRV = shader_file.get_spirv()
 	boid_compute_shader = rd.shader_create_from_spirv(shader_spirv)
@@ -155,6 +186,7 @@ func _generate_parameter_buffer(delta):
 		[NUM_BOIDS, 
 		IMAGE_SIZE, 
 		friend_radius,
+		avoid_radius,
 		min_vel, 
 		max_vel,
 		alignment_factor,
@@ -166,27 +198,14 @@ func _generate_parameter_buffer(delta):
 	
 	return rd.storage_buffer_create(params_buffer_bytes.size(), params_buffer_bytes)
 
-func _update_boids_gpu(delta):
-	rd.free_rid(params_buffer)
-	params_buffer = _generate_parameter_buffer(delta)
-	params_uniform.clear_ids()
-	params_uniform.add_id(params_buffer)
-	uniform_set = rd.uniform_set_create(bindings, boid_compute_shader, 0)
-	
-	var compute_list := rd.compute_list_begin()
-	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
-	
-	rd.compute_list_dispatch(compute_list, ceil(NUM_BOIDS/1024.), 1, 1)
-	rd.compute_list_end()
-	rd.submit()
-	rd.sync()
-
 func _exit_tree():
 	if SIMULATE_GPU:
-		rd.free_rid(boid_compute_shader)
+		_sync_boids_gpu()
+		rd.free_rid(uniform_set)
 		rd.free_rid(boid_data_buffer)
 		rd.free_rid(params_buffer)
 		rd.free_rid(boid_pos_buffer)
 		rd.free_rid(boid_vel_buffer)
+		rd.free_rid(pipeline)
+		rd.free_rid(boid_compute_shader)
 		rd.free()

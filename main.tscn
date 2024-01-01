@@ -10,12 +10,9 @@ shader_parameter/scale = 0.5
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_uvhkp")
-friend_radius = 25
-min_vel = 50
-max_vel = 75
-alignment_factor = 6
-cohesion_factor = 4
-separation_factor = 6
+alignment_factor = 7.0
+cohesion_factor = 2.0
+separation_factor = 22.0
 
 [node name="BoidParticles" type="GPUParticles2D" parent="."]
 scale = Vector2(0.5, 0.5)

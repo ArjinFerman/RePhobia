@@ -15,6 +15,7 @@ layout(set = 0, binding = 2, std430) restrict buffer Params{
     float num_boids;
     float image_size;
     float friend_radius;
+    float avoid_radius;
     float min_vel;
     float max_vel;
     float alignment_factor;
@@ -34,6 +35,7 @@ void main() {
     vec2 avg_vel = vec2(0,0);
     vec2 midpoint = vec2(0,0);
     vec2 separation_vec = vec2(0,0);
+    int avoids = 0;
     int num_friends = 0;
 
     for(int i = 0; i < params.num_boids; i++)
@@ -46,7 +48,10 @@ void main() {
                 num_friends += 1;
                 avg_vel += other_vel;
                 midpoint += other_pos;
-                separation_vec += my_pos - other_pos;
+                if(dist < params.avoid_radius) {
+                    avoids += 1;
+                    separation_vec += my_pos - other_pos;
+                }
             }
         }
     }
@@ -57,9 +62,9 @@ void main() {
 
         midpoint /= num_friends;
 		my_vel += normalize(midpoint - my_pos) * params.cohesion_factor;
-
-        separation_vec /= num_friends;
-		my_vel += normalize(separation_vec) * params.separation_factor;
+        if(avoids > 0){
+		    my_vel += normalize(separation_vec) * params.separation_factor;
+        }
     }
 
     // Calculate rotation
@@ -68,7 +73,7 @@ void main() {
     if (isnan(my_rot)){
         my_rot = 0.0;
     } else if (my_vel.y < 0){
-        my_rot *= -1.0;
+        my_rot = -my_rot;
     }
 
     float vel_mag = length(my_vel);
