@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3 uid="uid://b8xbs060jdgew"]
+
+[ext_resource type="Script" path="res://main/main.gd" id="1_qjct2"]
+[ext_resource type="PackedScene" uid="uid://ro4x40gaxuex" path="res://particle_shader/boid_particles.tscn" id="2_35wr5"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_qjct2")
+alignment_factor = 7.0
+cohesion_factor = 2.0
+separation_factor = 22.0
+
+[node name="BoidParticles" parent="." instance=ExtResource("2_35wr5")]
