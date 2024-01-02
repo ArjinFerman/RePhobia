@@ -52,8 +52,8 @@ func _ready():
 
 func _generate_boids():
 	for i in NUM_BOIDS:
-		boid_pos.append(Vector2(randf()*get_viewport_rect().size.x, randf()*get_viewport_rect().size.y))
-		boid_vel.append(Vector2(randf_range(-1.,1.)*max_vel, randf_range(-1.,1.)*max_vel))
+		boid_pos.append(Vector2(randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y))
+		boid_vel.append(Vector2(randf_range(-1.0, 1.0)*max_vel, randf_range(-1.0, 1.0) * max_vel))
 
 func _process(_delta):	
 	get_window().title = "GPU: " + str(SIMULATE_GPU) + " / Boids: " + str(NUM_BOIDS) + " / FPS: " + str(Engine.get_frames_per_second())
