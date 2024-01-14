@@ -58,10 +58,11 @@ void main() {
     if(num_friends > 0)
     {
         avg_vel /= num_friends;
-        my_vel += normalize(avg_vel - my_vel) * params.alignment_factor;
+        my_vel += normalize(avg_vel) * params.alignment_factor;
 
         midpoint /= num_friends;
 		my_vel += normalize(midpoint - my_pos) * params.cohesion_factor;
+        
         if(avoids > 0){
 		    my_vel += normalize(separation_vec) * params.separation_factor;
         }

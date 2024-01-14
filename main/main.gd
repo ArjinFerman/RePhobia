@@ -1,7 +1,7 @@
 extends Node2D
 var DEBUG_LOG = false
 
-var NUM_BOIDS = 100
+var NUM_BOIDS = 1000
 var boid_pos = []
 var boid_vel = []
 
@@ -31,9 +31,6 @@ var params_buffer: RID
 var params_uniform : RDUniform
 var boid_data_buffer : RID
 
-func _1d_to_2d(index_1d):
-	return Vector2(int(index_1d / IMAGE_SIZE), int(index_1d % IMAGE_SIZE))
-
 func _ready():
 	boid_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH)								
 	boid_data_texture = ImageTexture.create_from_image(boid_data)
@@ -53,22 +50,24 @@ func _ready():
 func _generate_boids():
 	for i in NUM_BOIDS:
 		boid_pos.append(Vector2(randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y))
-		boid_vel.append(Vector2(randf_range(-1.0, 1.0)*max_vel, randf_range(-1.0, 1.0) * max_vel))
+		boid_vel.append(Vector2(randf_range(-1.0, 1.0) * max_vel, randf_range(-1.0, 1.0) * max_vel))
 
-func _process(_delta):	
+func _process(delta):	
 	get_window().title = "GPU: " + str(SIMULATE_GPU) + " / Boids: " + str(NUM_BOIDS) + " / FPS: " + str(Engine.get_frames_per_second())
 	
+	get_window().title = "Boids: " + str(NUM_BOIDS) + " / FPS: " + str(Engine.get_frames_per_second())
+
 	if SIMULATE_GPU:
 		_sync_boids_gpu()
 	else:
-		_update_boids_cpu(_delta)
+		_update_boids_cpu(delta)
 		
 	_update_data_texture()
 
 	if SIMULATE_GPU:
-		_update_boids_gpu(_delta)
+		_update_boids_gpu(delta)
 		
-func _update_boids_cpu(_delta):
+func _update_boids_cpu(delta):
 	for i in NUM_BOIDS:
 		var my_pos = boid_pos[i]
 		var my_vel = boid_vel[i]
@@ -92,7 +91,7 @@ func _update_boids_cpu(_delta):
 					
 		if(num_friends > 0):
 			avg_vel /= num_friends
-			my_vel += (avg_vel - my_pos).normalized() * alignment_factor
+			my_vel += avg_vel.normalized() * alignment_factor
 			
 			midpoint /= num_friends
 			my_vel += (midpoint - my_pos).normalized() * cohesion_factor
@@ -103,7 +102,7 @@ func _update_boids_cpu(_delta):
 		var vel_mag = my_vel.length()
 		vel_mag = clamp(vel_mag, min_vel, max_vel)
 		my_vel = my_vel.normalized() * vel_mag		
-		my_pos += my_vel * _delta
+		my_pos += my_vel * delta
 		my_pos = Vector2(wrapf(my_pos.x, 0, get_viewport_rect().size.x,),
 						 wrapf(my_pos.y, 0, get_viewport_rect().size.y,))
 		
@@ -134,7 +133,7 @@ func _update_data_texture():
 		boid_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH, boid_data_image_data)
 	else:
 		for i in NUM_BOIDS:
-			var pixel_pos = _1d_to_2d(i)
+			var pixel_pos = Vector2(int(i / float(IMAGE_SIZE)), int(i % IMAGE_SIZE))
 			boid_data.set_pixel(pixel_pos.x, pixel_pos.y, Color(boid_pos[i].x,boid_pos[i].y,boid_vel[i].angle(),0))
 			
 	boid_data_texture.update(boid_data)

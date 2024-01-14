@@ -5,8 +5,12 @@
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_qjct2")
-alignment_factor = 7.0
-cohesion_factor = 2.0
-separation_factor = 22.0
+friend_radius = 21.935
+avoid_radius = 16.613
+min_vel = 71.236
+max_vel = 100.0
+alignment_factor = 1.075
+cohesion_factor = 1.075
+separation_factor = 5.871
 
 [node name="BoidParticles" parent="." instance=ExtResource("2_35wr5")]
