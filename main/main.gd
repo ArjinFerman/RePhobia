@@ -36,6 +36,7 @@ func _ready():
 	boid_data_texture = ImageTexture.create_from_image(boid_data)
 	
 	_generate_boids()
+	
 	if DEBUG_LOG:
 		for i in boid_pos.size():
 			print("Boid: ", i, " Pos: ", boid_pos[i], " Vel: ", boid_vel[i])
@@ -133,7 +134,7 @@ func _update_data_texture():
 		boid_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH, boid_data_image_data)
 	else:
 		for i in NUM_BOIDS:
-			var pixel_pos = Vector2(int(i / float(IMAGE_SIZE)), int(i % IMAGE_SIZE))
+			var pixel_pos = Vector2(int(i % IMAGE_SIZE), int(i / float(IMAGE_SIZE)))
 			boid_data.set_pixel(pixel_pos.x, pixel_pos.y, Color(boid_pos[i].x,boid_pos[i].y,boid_vel[i].angle(),0))
 			
 	boid_data_texture.update(boid_data)
