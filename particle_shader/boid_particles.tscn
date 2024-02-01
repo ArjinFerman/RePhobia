@@ -1,11 +1,20 @@
-[gd_scene load_steps=4 format=3 uid="uid://ro4x40gaxuex"]
+[gd_scene load_steps=7 format=3 uid="uid://ro4x40gaxuex"]
 
 [ext_resource type="Shader" path="res://particle_shader/boid_particle.gdshader" id="1_yxvxf"]
+[ext_resource type="Texture2D" uid="uid://b4onm4yp75au2" path="res://particle_shader/friend_map.png" id="2_q6cho"]
 [ext_resource type="Texture2D" uid="uid://cqr7cxcfwdkhe" path="res://particle_shader/boid.png" id="2_s41ff"]
+[ext_resource type="Texture2D" uid="uid://c0ml1r2hokmio" path="res://particle_shader/heading_map.png" id="2_tb0x6"]
+[ext_resource type="Texture2D" uid="uid://b6hsatakdtowi" path="res://particle_shader/detection_map.png" id="2_uhrvf"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uovvq"]
 shader = ExtResource("1_yxvxf")
 shader_parameter/scale = 0.5
+shader_parameter/color = Color(0.203922, 0.87451, 0, 1)
+shader_parameter/color_mode = null
+shader_parameter/max_friends = 20
+shader_parameter/heading_map = ExtResource("2_tb0x6")
+shader_parameter/friend_map = ExtResource("2_q6cho")
+shader_parameter/detection_map = ExtResource("2_uhrvf")
 
 [node name="BoidParticles" type="GPUParticles2D"]
 scale = Vector2(0.5, 0.5)
