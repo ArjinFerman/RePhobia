@@ -6,11 +6,9 @@
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_qjct2")
-boid_color = Color(1, 0.294118, 0.290196, 1)
+boid_color = Color(0, 0.615686, 0.941176, 1)
+boid_color_mode = 3
 boid_max_friends = 25
-boid_scale = 0.4
-bin_grid = true
-pause = true
 
 [node name="BoidParticles" parent="." instance=ExtResource("2_35wr5")]
 

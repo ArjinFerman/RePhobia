@@ -38,7 +38,7 @@ enum BoidColorMode {SOLID, HEADING, FRIENDS, BIN, DETECTION}
 		if is_inside_tree():
 			$BoidParticles.process_material.set_shader_parameter("max_friends", boid_max_friends)
 
-@export_range(.1, 1.0) var boid_scale = .5:
+@export var boid_scale = Vector2(.5, .5):
 	set(new_scale):
 		boid_scale = new_scale
 		if is_inside_tree():

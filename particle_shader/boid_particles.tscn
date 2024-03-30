@@ -8,7 +8,7 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uovvq"]
 shader = ExtResource("1_yxvxf")
-shader_parameter/scale = 0.5
+shader_parameter/scale = Vector2(1, 1)
 shader_parameter/color = Color(0.203922, 0.87451, 0, 1)
 shader_parameter/color_mode = null
 shader_parameter/max_friends = 20

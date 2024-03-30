@@ -1,6 +1,6 @@
 shader_type particles;
 uniform sampler2D boid_data;
-uniform float scale = .5;
+uniform vec2 scale = vec2(.5, .5);
 uniform vec4 color : source_color;
 uniform uint color_mode;
 uniform sampler2D heading_map;
@@ -18,7 +18,10 @@ void process() {
 	
 	mat2 scale_rot_mat = mat2(vec2(cos(boid_pos_rot.b), sin(boid_pos_rot.b)), // First column
 							  vec2(-sin(boid_pos_rot.b), cos(boid_pos_rot.b))); // Second column
-	scale_rot_mat *= scale;
+	
+	scale_rot_mat[0] *= scale.x;
+	scale_rot_mat[1] *= scale.y;
+	
 	TRANSFORM[0].xy = scale_rot_mat[0];
 	TRANSFORM[1].xy = scale_rot_mat[1];
 	TRANSFORM[3].xy = vec2(boid_pos_rot.r, boid_pos_rot.g); 
