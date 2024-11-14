@@ -9,6 +9,9 @@ void main() {
     int my_index = int(gl_GlobalInvocationID.x);
     if(my_index >= params.num_boids) return;
 
+	bool use_bins = true;
+	if (use_bins) my_index = bin_reindex.data[my_index];
+
     vec2 my_pos = boid_pos.data[my_index];
     vec2 my_vel = boid_vel.data[my_index];
     vec2 avg_vel = vec2(0,0);
@@ -17,7 +20,6 @@ void main() {
     int avoids = 0;
     int num_friends = 0;
 
-    bool use_bins = true;
     int my_bin = bin.data[my_index];
 
     int color_mode = int(params.color_mode);

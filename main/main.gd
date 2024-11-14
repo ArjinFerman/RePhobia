@@ -1,7 +1,7 @@
 extends Node2D
 var DEBUG_LOG = false
 
-var NUM_BOIDS = 50000
+var NUM_BOIDS = 262144
 var boid_pos = []
 var boid_vel = []
 
@@ -70,7 +70,7 @@ var params_uniform : RDUniform
 var boid_data_buffer : RID
 
 # BIN Variable
-var BIN_SIZE = 128
+var BIN_SIZE = 16
 var BINS = Vector2i.ZERO
 var NUM_BINS = 0
 
