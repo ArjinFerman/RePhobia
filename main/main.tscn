@@ -6,10 +6,13 @@
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_qjct2")
+friend_radius = 1.199
 boid_color = Color(0, 0.615686, 0.941176, 1)
-boid_color_mode = 3
-boid_max_friends = 25
+boid_color_mode = 1
+boid_max_friends = 16
+boid_scale = Vector2(0.3, 0.3)
 
 [node name="BoidParticles" parent="." instance=ExtResource("2_35wr5")]
+scale = Vector2(0.1, 0.1)
 
 [node name="Grid" parent="." instance=ExtResource("3_gnc8u")]

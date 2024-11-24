@@ -1,7 +1,7 @@
 extends Node2D
 var DEBUG_LOG = false
 
-var NUM_BOIDS = 262144
+var NUM_BOIDS = 131072
 var boid_pos = []
 var boid_vel = []
 
@@ -10,8 +10,8 @@ var boid_data : Image
 var boid_data_texture : ImageTexture
 
 @export_category("Boid Settings")
-@export_range(0, 50) var friend_radius = 10.0
-@export_range(0, 50) var avoid_radius = 5.0
+@export_range(0, 1.8) var friend_radius = 1.0
+@export_range(0, 50) var avoid_radius = 2.0
 @export_range(0,100) var min_vel = 50.0
 @export_range(0,100) var max_vel = 75.0
 @export_range(0,100) var alignment_factor = 10.0
@@ -125,6 +125,7 @@ func _generate_boids():
 	for i in NUM_BOIDS:
 		boid_pos.append(Vector2(randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y))
 		boid_vel.append(Vector2(randf_range(-1.0, 1.0) * max_vel, randf_range(-1.0, 1.0) * max_vel))
+		#boid_vel.append(Vector2(100, 100))
 
 func _process(delta):	
 	get_window().title = "GPU: " + str(SIMULATE_GPU) + " / Boids: " + str(NUM_BOIDS) + " / FPS: " + str(Engine.get_frames_per_second())
@@ -322,9 +323,9 @@ func _generate_parameter_buffer(delta):
 		avoid_radius,
 		min_vel, 
 		max_vel,
-		alignment_factor,
-		cohesion_factor,
-		separation_factor,
+		get_viewport().get_mouse_position().x,
+		get_viewport().get_mouse_position().y,
+		boid_scale.x,
 		get_viewport_rect().size.x,
 		get_viewport_rect().size.y,
 		delta,

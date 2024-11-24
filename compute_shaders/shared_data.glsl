@@ -9,13 +9,13 @@ layout(set = 0, binding = 1, std430) restrict buffer Velocity{
 layout(set = 0, binding = 2, std430) restrict buffer Params{
     float num_boids;
     float image_size;
-    float friend_radius;
+    float collision_factor;
     float avoid_radius;
     float min_vel;
     float max_vel;
-    float alignment_factor;
-    float cohesion_factor;
-    float separation_factor;
+    float mouse_x;
+    float mouse_y;
+    float scale;
     float viewport_x;
     float viewport_y;
     float delta_time;
