@@ -1,7 +1,7 @@
 extends Node2D
 var DEBUG_LOG = false
 
-var NUM_BOIDS = 131072
+var NUM_BOIDS = 4096
 var boid_pos = []
 var boid_vel = []
 
@@ -32,12 +32,6 @@ enum BoidColorMode {SOLID, HEADING, FRIENDS, BIN, DETECTION}
 		if is_inside_tree():
 			$BoidParticles.process_material.set_shader_parameter("color_mode", boid_color_mode)
 			
-@export var boid_max_friends = 10 :
-	set(new_max_friends):
-		boid_max_friends = new_max_friends
-		if is_inside_tree():
-			$BoidParticles.process_material.set_shader_parameter("max_friends", boid_max_friends)
-
 @export var boid_scale = Vector2(.5, .5):
 	set(new_scale):
 		boid_scale = new_scale
@@ -94,7 +88,6 @@ func _ready():
 	
 	boid_color = boid_color
 	boid_color_mode = boid_color_mode
-	boid_max_friends = boid_max_friends
 	boid_scale = boid_scale
 	bin_grid = bin_grid
 	
@@ -130,60 +123,13 @@ func _generate_boids():
 func _process(delta):	
 	get_window().title = "GPU: " + str(SIMULATE_GPU) + " / Boids: " + str(NUM_BOIDS) + " / FPS: " + str(Engine.get_frames_per_second())
 	
-	if SIMULATE_GPU:
-		_sync_boids_gpu()
-	else:
-		_update_boids_cpu(delta)
+	_sync_boids_gpu()
 		
 	#var test_output = rd.buffer_get_data(bin_sum_buffer).to_int32_array()
 	#print("bin_sum",test_output)
 		
 	_update_data_texture()
-
-	if SIMULATE_GPU:
-		_update_boids_gpu(delta)
-				
-func _update_boids_cpu(delta):
-	for i in NUM_BOIDS:
-		var my_pos = boid_pos[i]
-		var my_vel = boid_vel[i]
-		var avg_vel = Vector2.ZERO
-		var midpoint = Vector2.ZERO
-		var separation_vec = Vector2.ZERO
-		var num_friends = 0
-		var num_avoids = 0
-		for j in NUM_BOIDS:
-			if i != j:
-				var other_pos = boid_pos[j]
-				var other_vel = boid_vel[j]
-				var dist = my_pos.distance_to(other_pos)
-				if(dist < friend_radius):
-					num_friends += 1
-					avg_vel += other_vel
-					midpoint += other_pos
-					if(dist < avoid_radius):
-						num_avoids += 1
-						separation_vec += my_pos - other_pos
-					
-		if(num_friends > 0):
-			avg_vel /= num_friends
-			my_vel += avg_vel.normalized() * alignment_factor
-			
-			midpoint /= num_friends
-			my_vel += (midpoint - my_pos).normalized() * cohesion_factor
-			
-			if(num_avoids > 0):
-				my_vel += separation_vec.normalized() * separation_factor
-		
-		var vel_mag = my_vel.length()
-		vel_mag = clamp(vel_mag, min_vel, max_vel)
-		my_vel = my_vel.normalized() * vel_mag		
-		my_pos += my_vel * delta
-		my_pos = Vector2(wrapf(my_pos.x, 0, get_viewport_rect().size.x,),
-						 wrapf(my_pos.y, 0, get_viewport_rect().size.y,))
-		
-		boid_pos[i] = my_pos
-		boid_vel[i] = my_vel 
+	_update_boids_gpu(delta)
 
 func _update_boids_gpu(delta):
 	rd.free_rid(params_buffer)
