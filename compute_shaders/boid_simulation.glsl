@@ -12,7 +12,7 @@ void main() {
 	bool use_bins = true;
 	int num_friends = 0;
 	int color_mode = int(params.color_mode);
-	float collision_radius = 5.0 * params.scale;
+	float collision_radius = 5.0 * params.collision_radius;
 	float massFactor = 0.50;
 
 	my_index = bin_reindex.data[my_index];
@@ -68,13 +68,12 @@ void main() {
 	}
 
 	if (vel_mag > 0) {
-		vel_mag = clamp(vel_mag, params.min_vel, params.max_vel);
+		vel_mag = clamp(vel_mag, params.max_vel, params.max_vel);
 		my_vel = normalize(my_vel) * vel_mag;
 	}
 
 	my_pos += my_col_shift;
 	my_pos += my_vel * params.delta_time;
-	my_pos = vec2(mod(my_pos.x, params.viewport_x), mod(my_pos.y, params.viewport_y));
 
 	if (!bool(params.pause))
 	{
@@ -97,25 +96,7 @@ void main() {
 	switch (color_mode) {
 		case 0:
 		case 1:
-		case 2:
 			imageStore(boid_data, pixel_pos, vec4(my_pos.x, my_pos.y, my_rot, collision_count));
-			break;
-		case 3:
-			int bin_even_odd_row_col = (bin.data[my_index] % 2 + int(bin.data[my_index] / float(bin_params.bins_x))) % 2;
-			if (bin_params.bins_x % 2 == 1)
-			{
-				bin_even_odd_row_col = bin.data[my_index] % 2;
-			}
-
-			imageStore(boid_data, pixel_pos, vec4(my_pos.x, my_pos.y, my_rot, bin_even_odd_row_col));
-			break;
-		case 4:
-			vec4 pos_rot = imageLoad(boid_data, pixel_pos);
-			int detection_type = int(pos_rot.a);
-			if (my_index == 0) {
-				detection_type = 4;
-			}
-			imageStore(boid_data, pixel_pos, vec4(my_pos.x, my_pos.y, my_rot, detection_type));
 			break;
 	}
 }

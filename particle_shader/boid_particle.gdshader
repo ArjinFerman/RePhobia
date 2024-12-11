@@ -1,6 +1,6 @@
 shader_type particles;
 uniform sampler2D boid_data;
-uniform vec2 scale = vec2(.5, .5);
+uniform float scale = 0.5;
 uniform vec4 color : source_color;
 uniform uint color_mode;
 uniform sampler2D heading_map;
@@ -19,8 +19,8 @@ void process() {
 	mat2 scale_rot_mat = mat2(vec2(cos(boid_pos_rot.b), sin(boid_pos_rot.b)), // First column
 							  vec2(-sin(boid_pos_rot.b), cos(boid_pos_rot.b))); // Second column
 
-	scale_rot_mat[0] *= scale.x;
-	scale_rot_mat[1] *= scale.y;
+	scale_rot_mat[0] *= scale;
+	scale_rot_mat[1] *= scale;
 
     VELOCITY = vec3(0,0,0);
 
@@ -33,21 +33,7 @@ void process() {
 			COLOR = color;
 			break;
 		case 1:
-			COLOR = vec4(boid_pos_rot.a, boid_pos_rot.a/6.0, 1.0-boid_pos_rot.a, 1);
-			break;
-		case 2:
-			COLOR = texture(friend_map, clamp(vec2(0, boid_pos_rot.a / float(max_friends)), .01, .99));
-			break;
-		case 3:
-			if(bool(boid_pos_rot.a)){
-				COLOR = color;
-			}
-			else {
-				COLOR = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, color.a);
-			}
-			break;
-		case 4:
-			COLOR = texelFetch(detection_map, ivec2(int(boid_pos_rot.a), 0), 0);
+			COLOR = vec4(1.0, 1.0-boid_pos_rot.a/6.0, 1.0-boid_pos_rot.a, 1);
 			break;
 	}
 }

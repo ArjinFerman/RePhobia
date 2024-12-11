@@ -64,7 +64,7 @@ var params_uniform : RDUniform
 var boid_data_buffer : RID
 
 # BIN Variable
-var BIN_SIZE = 16
+var BIN_SIZE = 128
 var BINS = Vector2i.ZERO
 var NUM_BINS = 0
 
@@ -83,7 +83,7 @@ var bin_reindex_buffer : RID
 var bin_params_buffer : RID
 
 func _ready():
-	boid_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH)								
+	boid_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH)
 	boid_data_texture = ImageTexture.create_from_image(boid_data)
 	
 	boid_color = boid_color
