@@ -1,18 +1,18 @@
 [gd_scene load_steps=4 format=3 uid="uid://b8xbs060jdgew"]
 
-[ext_resource type="Script" path="res://main/main.gd" id="1_qjct2"]
 [ext_resource type="PackedScene" uid="uid://ro4x40gaxuex" path="res://particle_shader/boid_particles.tscn" id="2_35wr5"]
 [ext_resource type="PackedScene" uid="uid://dsbs6nvtkvouu" path="res://grid/Grid.tscn" id="3_gnc8u"]
+[ext_resource type="Script" path="res://scripts/boid_controller.gd" id="4_qf30k"]
 
 [node name="Main" type="Node2D"]
-script = ExtResource("1_qjct2")
-friend_radius = 1.199
-boid_color = Color(0, 0.615686, 0.941176, 1)
+
+[node name="Boids" type="Node2D" parent="."]
+script = ExtResource("4_qf30k")
+boid_color = Color(0, 0.427451, 1, 1)
 boid_color_mode = 1
-boid_max_friends = 16
-boid_scale = Vector2(0.3, 0.3)
+shader_files = Array[String](["res://compute_shaders/bin_sum.glsl", "res://compute_shaders/bin_prefix_sum.glsl", "res://compute_shaders/bin_reindex.glsl", "res://compute_shaders/boid_simulation.glsl"])
 
-[node name="BoidParticles" parent="." instance=ExtResource("2_35wr5")]
+[node name="Grid" parent="Boids" instance=ExtResource("3_gnc8u")]
+
+[node name="BoidParticles" parent="Boids" instance=ExtResource("2_35wr5")]
 scale = Vector2(0.1, 0.1)
-
-[node name="Grid" parent="." instance=ExtResource("3_gnc8u")]

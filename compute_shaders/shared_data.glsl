@@ -10,8 +10,6 @@ layout(set = 0, binding = 2, std430) restrict buffer Params{
     float num_boids;
     float image_size;
     float collision_factor;
-    float avoid_radius;
-    float min_vel;
     float max_vel;
     float mouse_x;
     float mouse_y;

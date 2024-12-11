@@ -68,7 +68,7 @@ void main() {
 	}
 
 	if (vel_mag > 0) {
-		vel_mag = clamp(vel_mag, params.min_vel, params.max_vel);
+		vel_mag = clamp(vel_mag, params.max_vel, params.max_vel);
 		my_vel = normalize(my_vel) * vel_mag;
 	}
 
