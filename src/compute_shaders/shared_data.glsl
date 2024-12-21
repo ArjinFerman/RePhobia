@@ -1,13 +1,13 @@
 layout(set = 0, binding = 0, std430) restrict buffer Position {
     vec2 data[];
-} boid_pos;
+} monster_pos;
 
 layout(set = 0, binding = 1, std430) restrict buffer Velocity{
     vec2 data[];
-} boid_vel;
+} monster_vel;
 
 layout(set = 0, binding = 2, std430) restrict buffer Params{
-    float num_boids;
+    float num_monsters;
     float image_size;
     float scale;
     float collision_radius;
@@ -20,7 +20,7 @@ layout(set = 0, binding = 2, std430) restrict buffer Params{
     float color_mode;
 } params;
 
-layout(rgba16f, binding = 3) uniform image2D boid_data;
+layout(rgba16f, binding = 3) uniform image2D monster_data;
 
 layout(set = 0, binding = 4, std430) restrict buffer BinParams{
     int bin_size;

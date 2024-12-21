@@ -7,7 +7,7 @@ layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
 	int my_index = int(gl_GlobalInvocationID.x);
-	if (my_index >= params.num_boids) return;
+	if (my_index >= params.num_monsters) return;
 
 	bool use_bins = true;
 	int num_friends = 0;
@@ -16,8 +16,8 @@ void main() {
 	float massFactor = 0.50;
 
 	my_index = bin_reindex.data[my_index];
-	vec2 my_pos = boid_pos.data[my_index];
-	vec2 my_vel = boid_vel.data[my_index];
+	vec2 my_pos = monster_pos.data[my_index];
+	vec2 my_vel = monster_vel.data[my_index];
 	vec2 my_col_shift = vec2(0, 0);
 
 	int my_bin = bin.data[my_index];
@@ -43,7 +43,7 @@ void main() {
 				int other_index = bin_reindex.data[i];
 
 				if(my_index != other_index) {
-					vec2 other_pos = boid_pos.data[other_index];
+					vec2 other_pos = monster_pos.data[other_index];
 
 					vec2 themToMe = my_pos - other_pos;
 					float radiusSum = collision_radius + collision_radius;
@@ -57,7 +57,6 @@ void main() {
 		}
 	}
 
-	//my_vel -= my_col_impulse * 2;
 	my_vel = vec2(params.mouse_x, params.mouse_y) - my_pos;
 	float vel_mag = length(my_vel);
 	float my_col_shift_mag = length(my_col_shift);
@@ -77,15 +76,15 @@ void main() {
 
 	if (!bool(params.pause))
 	{
-		boid_vel.data[my_index] = my_vel;
-		boid_pos.data[my_index] = my_pos;
+		monster_vel.data[my_index] = my_vel;
+		monster_pos.data[my_index] = my_pos;
 	}
 	bin.data[my_index] = int(my_pos.x / bin_params.bin_size) + int(my_pos.y / bin_params.bin_size) * bin_params.bins_x;
 
 	ivec2 pixel_pos = ivec2(int(mod(my_index, params.image_size)), int(my_index / params.image_size));
 	//ivec2 pixel_pos = ivec2(my_bin_x_y);
 	// Calculate rotation
-	float my_rot = imageLoad(boid_data, pixel_pos).b;
+	float my_rot = imageLoad(monster_data, pixel_pos).b;
 	if (length(my_vel) > 0 && length(my_col_shift) <= 0) {
 		vec2 norm_vel = normalize(my_vel);
 		vec2 target = vec2(1, 0);
@@ -96,7 +95,7 @@ void main() {
 	switch (color_mode) {
 		case 0:
 		case 1:
-			imageStore(boid_data, pixel_pos, vec4(my_pos.x, my_pos.y, my_rot, collision_count));
+			imageStore(monster_data, pixel_pos, vec4(my_pos.x, my_pos.y, my_rot, collision_count));
 			break;
 	}
 }

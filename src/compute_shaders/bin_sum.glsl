@@ -13,12 +13,12 @@ void main(){
     }
     barrier();
 
-    if(my_index < params.num_boids){
+    if(my_index < params.num_monsters){
         atomicAdd(bin_sum.data[bin.data[my_index]], 1);
 
         if(params.color_mode == 4){
             ivec2 my_pos = one_to_two(my_index, int(params.image_size));
-            imageStore(boid_data, my_pos, vec4(0,0,0,0));
+            imageStore(monster_data, my_pos, vec4(0,0,0,0));
         }
     }    
 }
