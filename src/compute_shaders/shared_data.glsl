@@ -13,8 +13,8 @@ layout(set = 0, binding = 2, std430) restrict buffer Params{
     float collision_radius;
     float collision_factor;
     float max_vel;
-    float mouse_x;
-    float mouse_y;
+    float player_pos_x;
+    float player_pos_y;
     float delta_time;
     float pause;
     float color_mode;
@@ -48,6 +48,8 @@ layout(set = 0, binding = 8, std430) restrict buffer ReindexBin{
 layout(set = 0, binding = 9, std430) restrict buffer ReindexBinPositions{
     int data[];
 } bin_reindex;
+
+layout(rgba16f, binding = 10) uniform image2D bullet_data;
 
 ivec2 one_to_two(int index, int grid_width){
     int row = int(index / grid_width);

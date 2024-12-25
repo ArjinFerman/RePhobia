@@ -17,7 +17,6 @@ void main() {
 
 	my_index = bin_reindex.data[my_index];
 	vec2 my_pos = monster_pos.data[my_index];
-	vec2 my_vel = monster_vel.data[my_index];
 	vec2 my_col_shift = vec2(0, 0);
 
 	int my_bin = bin.data[my_index];
@@ -57,7 +56,7 @@ void main() {
 		}
 	}
 
-	my_vel = vec2(params.mouse_x, params.mouse_y) - my_pos;
+	vec2 my_vel = vec2(params.player_pos_x, params.player_pos_y) - my_pos;
 	float vel_mag = length(my_vel);
 	float my_col_shift_mag = length(my_col_shift);
 
@@ -76,7 +75,6 @@ void main() {
 
 	if (!bool(params.pause))
 	{
-		monster_vel.data[my_index] = my_vel;
 		monster_pos.data[my_index] = my_pos;
 	}
 	bin.data[my_index] = int(my_pos.x / bin_params.bin_size) + int(my_pos.y / bin_params.bin_size) * bin_params.bins_x;

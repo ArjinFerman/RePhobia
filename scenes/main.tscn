@@ -1,14 +1,24 @@
-[gd_scene load_steps=13 format=3 uid="uid://begmkbo52jclb"]
+[gd_scene load_steps=18 format=3 uid="uid://begmkbo52jclb"]
 
 [ext_resource type="Script" path="res://entities/monsters/monsters.gd" id="1_7rgak"]
 [ext_resource type="PackedScene" uid="uid://dsbs6nvtkvouu" path="res://entities/grid/Grid.tscn" id="2_cfon2"]
 [ext_resource type="Shader" path="res://entities/monsters/monster_particles.gdshader" id="3_160el"]
 [ext_resource type="Texture2D" uid="uid://cflgvugmpxar2" path="res://entities/monsters/monster.png" id="4_3r6gd"]
+[ext_resource type="Script" path="res://entities/bullets/bullet_particles.gd" id="4_ml4mw"]
 [ext_resource type="Script" path="res://entities/marine/marine.gd" id="5_5rp16"]
 [ext_resource type="Texture2D" uid="uid://be87apdtwh05f" path="res://entities/marine/marine_body.png" id="6_e21ck"]
+[ext_resource type="Script" path="res://entities/monsters/monster_particles.gd" id="6_xnuu8"]
 [ext_resource type="Texture2D" uid="uid://cbdhe3250vos6" path="res://entities/marine/marine_weapon.png" id="7_otda5"]
 [ext_resource type="Texture2D" uid="uid://cgv44xcr0d375" path="res://entities/marine/flashlight.png" id="8_ep1rx"]
 [ext_resource type="Script" path="res://entities/camera/camera.gd" id="9_kqckp"]
+[ext_resource type="Shader" path="res://entities/bullets/bullet_particles.gdshader" id="9_ryfg4"]
+[ext_resource type="Texture2D" uid="uid://ypwaram7xfm4" path="res://assets/Pure Projectile Effect/Files/Pure_06.png" id="9_y52ql"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_5x0yi"]
+shader = ExtResource("9_ryfg4")
+shader_parameter/scale = 0.5
+shader_parameter/color = Color(1, 0.877686, 0.404507, 1)
+shader_parameter/color_mode = null
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_lqh7t"]
 shader = ExtResource("3_160el")
@@ -28,20 +38,37 @@ fill_to = Vector2(0, 0)
 
 [node name="Main" type="Node2D"]
 
-[node name="Monsters" type="Node2D" parent="."]
+[node name="ShaderController" type="Node2D" parent="."]
 script = ExtResource("1_7rgak")
 collision_factor = 1.5
-shader_files = Array[String](["res://src/compute_shaders/bin_sum.glsl", "res://src/compute_shaders/bin_prefix_sum.glsl", "res://src/compute_shaders/bin_reindex.glsl", "res://src/compute_shaders/boid_simulation.glsl"])
+shader_files = Array[String](["res://src/compute_shaders/bin_sum.glsl", "res://src/compute_shaders/bin_prefix_sum.glsl", "res://src/compute_shaders/bin_reindex.glsl", "res://src/compute_shaders/monsters_sim.glsl", "res://src/compute_shaders/bullets_sim.glsl"])
 
-[node name="Grid" parent="Monsters" instance=ExtResource("2_cfon2")]
+[node name="BulletLayer" type="CanvasLayer" parent="ShaderController"]
 
-[node name="MonsterParticles" type="GPUParticles2D" parent="Monsters"]
+[node name="BulletParticles" type="GPUParticles2D" parent="ShaderController/BulletLayer"]
+light_mask = 0
+position = Vector2(908.9, 478.1)
+rotation = -0.785398
+scale = Vector2(0.1, 0.1)
+amount = 1
+process_material = SubResource("ShaderMaterial_5x0yi")
+texture = ExtResource("9_y52ql")
+preprocess = 1.0
+visibility_rect = Rect2(-100000, -100000, 200000, 200000)
+draw_order = 0
+script = ExtResource("4_ml4mw")
+
+[node name="MonsterParticles" type="GPUParticles2D" parent="ShaderController"]
 z_index = 6
 process_material = SubResource("ShaderMaterial_lqh7t")
 texture = ExtResource("4_3r6gd")
 preprocess = 1.0
 visibility_rect = Rect2(-100000, -100000, 200000, 200000)
 local_coords = true
+draw_order = 0
+script = ExtResource("6_xnuu8")
+
+[node name="Grid" parent="ShaderController" instance=ExtResource("2_cfon2")]
 
 [node name="Marine" type="Node2D" parent="."]
 position = Vector2(908, 477)
@@ -49,29 +76,41 @@ scale = Vector2(0.1, 0.1)
 script = ExtResource("5_5rp16")
 movement_speed = 2.0
 
-[node name="MarineSprite" type="Sprite2D" parent="Marine"]
-texture = ExtResource("6_e21ck")
-
 [node name="WeaponSprite" type="Sprite2D" parent="Marine"]
+z_index = 1
 position = Vector2(9, 1)
 rotation = -0.785398
 texture = ExtResource("7_otda5")
 
+[node name="Marine Light" type="PointLight2D" parent="Marine/WeaponSprite"]
+position = Vector2(-5.65747, -7.07129)
+rotation = 0.785398
+texture = SubResource("GradientTexture2D_7pim4")
+offset = Vector2(0, 32)
+texture_scale = 10.0
+
 [node name="WeaponLight" type="PointLight2D" parent="Marine/WeaponSprite"]
+position = Vector2(22.6272, -91.9238)
 scale = Vector2(10, 10)
 range_z_min = -4096
 range_z_max = 4096
 texture = ExtResource("8_ep1rx")
 offset = Vector2(0, -256)
 
-[node name="Marine Light" type="PointLight2D" parent="Marine"]
-texture = SubResource("GradientTexture2D_7pim4")
-offset = Vector2(0, 32)
-texture_scale = 10.0
+[node name="WeaponLightDebug" type="Sprite2D" parent="Marine/WeaponSprite/WeaponLight"]
+visible = false
+texture = ExtResource("8_ep1rx")
+offset = Vector2(0, -256)
+
+[node name="MarineSprite" type="Sprite2D" parent="Marine"]
+texture = ExtResource("6_e21ck")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(960, 544)
 script = ExtResource("9_kqckp")
 
 [node name="CanvasModulate" type="CanvasModulate" parent="."]
-color = Color(0.287309, 0.279731, 0.311896, 1)
+color = Color(0.347817, 0.347817, 0.347817, 1)
+
+[connection signal="property_changed" from="ShaderController" to="ShaderController/MonsterParticles" method="_on_shader_controller_property_changed"]
+[connection signal="property_changed" from="ShaderController" to="ShaderController/Grid" method="_on_shader_controller_property_changed"]

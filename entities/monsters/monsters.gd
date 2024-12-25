@@ -1,6 +1,10 @@
 class_name MonsterController extends ShaderController
 var DEBUG_LOG = false
 
+var BIN_SIZE = 128
+var BINS = Vector2i.ZERO
+var NUM_BINS = 0
+
 var NUM_MONSTERS = 1024
 var monster_pos : PackedVector2Array = []
 var monster_vel : PackedVector2Array = []
@@ -8,49 +12,45 @@ var monster_vel : PackedVector2Array = []
 var IMAGE_SIZE = int(ceil(sqrt(NUM_MONSTERS)))
 var monster_data : Image
 var monster_data_texture : ImageTexture
+var bullet_data : Image
+var bullet_data_texture : ImageTexture
+
+signal property_changed
 
 @export_category("Monster Settings")
 @export_range(0.1, 10) var monster_scale: float = 0.5:
 	set(new_scale):
 		monster_scale = new_scale
-		if is_inside_tree():
-			$MonsterParticles.process_material.set_shader_parameter("scale", monster_scale)
+		property_changed.emit()
 
 @export_range(0.1, 10) var collision_radius = 1.0
 @export_range(0, 1.8) var collision_factor = 1.0
 @export_range(0,100) var max_vel = 75.0
 
 @export_category("Rendering")
-@export var monster_color = Color(Color.WHITE) :
+@export var monster_color = Color(Color.WHITE):
 	set(new_color):
 		monster_color = new_color
-		if is_inside_tree():
-			$MonsterParticles.process_material.set_shader_parameter("color", monster_color)
+		property_changed.emit()
 
 enum MonsterColorMode {SOLID, COLLISIONS}
-@export var monster_color_mode : MonsterColorMode :
+@export var monster_color_mode : MonsterColorMode:
 	set(new_color_mode):
 		monster_color_mode = new_color_mode
-		if is_inside_tree():
-			$MonsterParticles.process_material.set_shader_parameter("color_mode", monster_color_mode)
+		property_changed.emit()
 
 @export var bin_grid = false:
 	set(new_grid):
 		bin_grid = new_grid
-		if is_inside_tree():
-			$Grid.visible = bin_grid
+		property_changed.emit()
 
 @export_category("Other")
-@export var pause = false :
-	set(new_value):
-		pause = new_value
+@export var pause = false
 
-# BIN Variable
-var BIN_SIZE = 128
-var BINS = Vector2i.ZERO
-var NUM_BINS = 0
-
-func _ready():	
+func _ready():
+	bullet_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH)
+	bullet_data_texture = ImageTexture.create_from_image(bullet_data)
+	
 	monster_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH)
 	monster_data_texture = ImageTexture.create_from_image(monster_data)
 	
@@ -63,20 +63,11 @@ func _ready():
 					snapped(get_viewport_rect().size.y / BIN_SIZE + .4,1))
 	NUM_BINS = BINS.x * BINS.y
 	
-	$Grid.bin_size = BIN_SIZE
-	$Grid.bins_x = BINS.x
-	$Grid.bins_y = BINS.y
-	
-	print(NUM_BINS)
-	
 	_generate_monsters()
 	
 	if DEBUG_LOG:
 		for i in monster_pos.size():
 			print("Monster: ", i, " Pos: ", monster_pos[i], " Vel: ", monster_vel[i])
-	
-	$MonsterParticles.amount = NUM_MONSTERS
-	$MonsterParticles.process_material.set_shader_parameter("monster_data", monster_data_texture)
 
 	_setup_compute_shaders()
 	_update_shader_params(0)
@@ -84,19 +75,20 @@ func _ready():
 func _generate_monsters():
 	for i in NUM_MONSTERS:
 		monster_pos.append(Vector2(randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y))
-		monster_vel.append(Vector2(randf_range(-1.0, 1.0) * max_vel, randf_range(-1.0, 1.0) * max_vel))
+		monster_vel.append(Vector2(randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y))
 
-func _process(delta):	
+func _process(delta):
 	get_window().title = "GPU: / Monsters: " + str(NUM_MONSTERS) + " / FPS: " + str(Engine.get_frames_per_second())
 	
-	_update_data_texture()
+	_update_data_texture("monster_data_buffer", monster_data, monster_data_texture)
+	_update_data_texture("bullet_data_buffer", bullet_data, bullet_data_texture)
 	_update_shader_params(delta)
 	process_shaders()
 
-func _update_data_texture():
-	var monster_data_image_data := rd.texture_get_data(shared_shader_vars["monster_data_buffer"].resource_id, 0)
-	monster_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH, monster_data_image_data)
-	monster_data_texture.update(monster_data)
+func _update_data_texture(shader_var_name, image, image_texture):
+	var image_data := rd.texture_get_data(shared_shader_vars[shader_var_name].resource_id, 0)
+	image.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH, image_data)
+	image_texture.update(image)
 
 func _update_shader_params(delta):
 	var shader_params_bytes = prepare_shader_params(delta).to_byte_array()
@@ -128,17 +120,21 @@ func _setup_compute_shaders():
 	shared_shader_vars["bin_prefix_sum_buffer"] = ShaderVariable.create_buffer(rd, 7, num_bins_array)
 	shared_shader_vars["bin_index_tracker_buffer"] = ShaderVariable.create_buffer(rd, 8, num_bins_array)
 	shared_shader_vars["bin_reindex_buffer"] = ShaderVariable.create_buffer(rd, 9, num_monsters_array)
+	shared_shader_vars["bullet_data_buffer"] = ShaderVariable.create_texture(rd, 10, fmt, [bullet_data.get_data()])
 	
-	bindings = [shared_shader_vars["monster_pos_buffer"].uniform,
-				shared_shader_vars["monster_vel_buffer"].uniform,
-				shared_shader_vars["params_buffer"].uniform,
-				shared_shader_vars["monster_data_buffer"].uniform,
-				shared_shader_vars["bin_params_buffer"].uniform,
-				shared_shader_vars["bin_buffer"].uniform,
-				shared_shader_vars["bin_sum_buffer"].uniform,
-				shared_shader_vars["bin_prefix_sum_buffer"].uniform,
-				shared_shader_vars["bin_index_tracker_buffer"].uniform,
-				shared_shader_vars["bin_reindex_buffer"].uniform]
+	bindings = [
+		shared_shader_vars["monster_pos_buffer"].uniform,
+		shared_shader_vars["monster_vel_buffer"].uniform,
+		shared_shader_vars["params_buffer"].uniform,
+		shared_shader_vars["monster_data_buffer"].uniform,
+		shared_shader_vars["bin_params_buffer"].uniform,
+		shared_shader_vars["bin_buffer"].uniform,
+		shared_shader_vars["bin_sum_buffer"].uniform,
+		shared_shader_vars["bin_prefix_sum_buffer"].uniform,
+		shared_shader_vars["bin_index_tracker_buffer"].uniform,
+		shared_shader_vars["bin_reindex_buffer"].uniform,
+		shared_shader_vars["bullet_data_buffer"].uniform,
+	]
 	
 	uniform_set = rd.uniform_set_create(bindings, shader_rids.back(), 0)
 	compute_groups = ceil(NUM_MONSTERS/1024.)
