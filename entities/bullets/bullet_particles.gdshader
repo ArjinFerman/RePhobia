@@ -24,12 +24,6 @@ void process() {
 	TRANSFORM[1].xy = scale_rot_mat[1];
 	TRANSFORM[3].xy = vec2(bullet_pos_rot.r, bullet_pos_rot.g);
 
-	switch(color_mode){
-		case 0:
-			COLOR = color;
-			break;
-		case 1:
-			COLOR = vec4(1.0, 1.0-bullet_pos_rot.a/6.0, 1.0-bullet_pos_rot.a, 1);
-			break;
-	}
+	COLOR = color;
+	COLOR.a = bullet_pos_rot.a >= 0.0 ? COLOR.a : 0.0;
 }

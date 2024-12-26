@@ -6,6 +6,9 @@ layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 #include "shared_data.glsl"
 
 void main() {
+	if (bool(params.pause))
+		return;
+
 	int my_index = int(gl_GlobalInvocationID.x);
 	if (my_index >= params.num_monsters) return;
 
@@ -16,7 +19,9 @@ void main() {
 	float massFactor = 0.50;
 
 	my_index = bin_reindex.data[my_index];
-	vec2 my_pos = monster_pos.data[my_index];
+	ivec2 pixel_pos = one_to_two(my_index, int(params.image_size));
+	vec4 my_data = imageLoad(monster_data, pixel_pos);
+	vec2 my_pos = my_data.xy;
 	vec2 my_col_shift = vec2(0, 0);
 
 	int my_bin = bin.data[my_index];
@@ -42,7 +47,8 @@ void main() {
 				int other_index = bin_reindex.data[i];
 
 				if(my_index != other_index) {
-					vec2 other_pos = monster_pos.data[other_index];
+					ivec2 other_pixel_pos = one_to_two(other_index, int(params.image_size));
+					vec2 other_pos = imageLoad(monster_data, other_pixel_pos).xy;
 
 					vec2 themToMe = my_pos - other_pos;
 					float radiusSum = collision_radius + collision_radius;
@@ -73,14 +79,8 @@ void main() {
 	my_pos += my_col_shift;
 	my_pos += my_vel * params.delta_time;
 
-	if (!bool(params.pause))
-	{
-		monster_pos.data[my_index] = my_pos;
-	}
 	bin.data[my_index] = int(my_pos.x / bin_params.bin_size) + int(my_pos.y / bin_params.bin_size) * bin_params.bins_x;
 
-	ivec2 pixel_pos = ivec2(int(mod(my_index, params.image_size)), int(my_index / params.image_size));
-	//ivec2 pixel_pos = ivec2(my_bin_x_y);
 	// Calculate rotation
 	float my_rot = imageLoad(monster_data, pixel_pos).b;
 	if (length(my_vel) > 0 && length(my_col_shift) <= 0) {
@@ -90,10 +90,5 @@ void main() {
 		my_rot = atan(det, dot(norm_vel, target));
 	}
 
-	switch (color_mode) {
-		case 0:
-		case 1:
-			imageStore(monster_data, pixel_pos, vec4(my_pos.x, my_pos.y, my_rot, collision_count));
-			break;
-	}
+	imageStore(monster_data, pixel_pos, vec4(my_pos.x, my_pos.y, my_rot, collision_count));
 }

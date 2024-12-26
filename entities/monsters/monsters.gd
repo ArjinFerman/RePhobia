@@ -1,13 +1,12 @@
 class_name MonsterController extends ShaderController
 var DEBUG_LOG = false
 
+var game_time = 0.0
 var BIN_SIZE = 128
 var BINS = Vector2i.ZERO
 var NUM_BINS = 0
 
 var NUM_MONSTERS = 1024
-var monster_pos : PackedVector2Array = []
-var monster_vel : PackedVector2Array = []
 
 var IMAGE_SIZE = int(ceil(sqrt(NUM_MONSTERS)))
 var monster_data : Image
@@ -48,10 +47,10 @@ enum MonsterColorMode {SOLID, COLLISIONS}
 @export var pause = false
 
 func _ready():
-	bullet_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH)
+	bullet_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	bullet_data_texture = ImageTexture.create_from_image(bullet_data)
 	
-	monster_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH)
+	monster_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	monster_data_texture = ImageTexture.create_from_image(monster_data)
 	
 	monster_color = monster_color
@@ -64,21 +63,26 @@ func _ready():
 	NUM_BINS = BINS.x * BINS.y
 	
 	_generate_monsters()
-	
-	if DEBUG_LOG:
-		for i in monster_pos.size():
-			print("Monster: ", i, " Pos: ", monster_pos[i], " Vel: ", monster_vel[i])
 
 	_setup_compute_shaders()
 	_update_shader_params(0)
 
 func _generate_monsters():
+	var bullets : PackedFloat32Array
+	var monsters : PackedFloat32Array
 	for i in NUM_MONSTERS:
-		monster_pos.append(Vector2(randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y))
-		monster_vel.append(Vector2(randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y))
+		monsters.append_array([randf() * get_viewport_rect().size.x, randf()  * get_viewport_rect().size.y, 0.0, 0.0])
+		bullets.append_array([-1.0, -1.0, -1.0, -1.0])
+	
+	monster_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF, monsters.to_byte_array())
+	monster_data_texture.update(monster_data)
+	
+	bullet_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF, bullets.to_byte_array())
+	bullet_data_texture.update(bullet_data)
 
 func _process(delta):
 	get_window().title = "GPU: / Monsters: " + str(NUM_MONSTERS) + " / FPS: " + str(Engine.get_frames_per_second())
+	game_time += delta
 	
 	_update_data_texture("monster_data_buffer", monster_data, monster_data_texture)
 	_update_data_texture("bullet_data_buffer", bullet_data, bullet_data_texture)
@@ -87,7 +91,7 @@ func _process(delta):
 
 func _update_data_texture(shader_var_name, image, image_texture):
 	var image_data := rd.texture_get_data(shared_shader_vars[shader_var_name].resource_id, 0)
-	image.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAH, image_data)
+	image.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF, image_data)
 	image_texture.update(image)
 
 func _update_shader_params(delta):
@@ -98,14 +102,12 @@ func _setup_compute_shaders():
 	super()
 	
 	shader_params = prepare_shader_params(0)
-	shared_shader_vars["monster_pos_buffer"] = ShaderVariable.create_buffer(rd, 0, monster_pos)
-	shared_shader_vars["monster_vel_buffer"] = ShaderVariable.create_buffer(rd, 1, monster_vel)
-	shared_shader_vars["params_buffer"] = ShaderVariable.create_buffer(rd, 2, shader_params)
+	shared_shader_vars["params_buffer"] = ShaderVariable.create_buffer(rd, 0, shader_params)
 	
 	var fmt := RDTextureFormat.new()
 	fmt.width = IMAGE_SIZE
 	fmt.height = IMAGE_SIZE
-	fmt.format = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT
+	fmt.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT
 	fmt.usage_bits = RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT | RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
 	
 	var num_monsters_array = PackedInt32Array()
@@ -113,18 +115,16 @@ func _setup_compute_shaders():
 	num_monsters_array.resize(NUM_MONSTERS)
 	num_bins_array.resize(NUM_BINS)
 	
-	shared_shader_vars["monster_data_buffer"] = ShaderVariable.create_texture(rd, 3, fmt, [monster_data.get_data()])
-	shared_shader_vars["bin_params_buffer"] = ShaderVariable.create_buffer(rd, 4, PackedInt32Array([BIN_SIZE, BINS.x, BINS.y, NUM_BINS]))
-	shared_shader_vars["bin_buffer"] = ShaderVariable.create_buffer(rd, 5, num_monsters_array)
-	shared_shader_vars["bin_sum_buffer"] = ShaderVariable.create_buffer(rd, 6, num_bins_array)
-	shared_shader_vars["bin_prefix_sum_buffer"] = ShaderVariable.create_buffer(rd, 7, num_bins_array)
-	shared_shader_vars["bin_index_tracker_buffer"] = ShaderVariable.create_buffer(rd, 8, num_bins_array)
-	shared_shader_vars["bin_reindex_buffer"] = ShaderVariable.create_buffer(rd, 9, num_monsters_array)
-	shared_shader_vars["bullet_data_buffer"] = ShaderVariable.create_texture(rd, 10, fmt, [bullet_data.get_data()])
+	shared_shader_vars["bin_params_buffer"] = ShaderVariable.create_buffer(rd, 1, PackedInt32Array([BIN_SIZE, BINS.x, BINS.y, NUM_BINS]))
+	shared_shader_vars["bin_buffer"] = ShaderVariable.create_buffer(rd, 2, num_monsters_array)
+	shared_shader_vars["bin_sum_buffer"] = ShaderVariable.create_buffer(rd, 3, num_bins_array)
+	shared_shader_vars["bin_prefix_sum_buffer"] = ShaderVariable.create_buffer(rd, 4, num_bins_array)
+	shared_shader_vars["bin_index_tracker_buffer"] = ShaderVariable.create_buffer(rd, 5, num_bins_array)
+	shared_shader_vars["bin_reindex_buffer"] = ShaderVariable.create_buffer(rd, 6, num_monsters_array)
+	shared_shader_vars["monster_data_buffer"] = ShaderVariable.create_texture(rd, 7, fmt, [monster_data.get_data()])
+	shared_shader_vars["bullet_data_buffer"] = ShaderVariable.create_texture(rd, 8, fmt, [bullet_data.get_data()])
 	
 	bindings = [
-		shared_shader_vars["monster_pos_buffer"].uniform,
-		shared_shader_vars["monster_vel_buffer"].uniform,
 		shared_shader_vars["params_buffer"].uniform,
 		shared_shader_vars["monster_data_buffer"].uniform,
 		shared_shader_vars["bin_params_buffer"].uniform,
@@ -140,9 +140,10 @@ func _setup_compute_shaders():
 	compute_groups = ceil(NUM_MONSTERS/1024.)
 
 func prepare_shader_params(delta: float) -> PackedFloat32Array:
-	var playerPos: Vector2 = $".."/Marine.transform.origin
-	return PackedFloat32Array(
-		[NUM_MONSTERS,
+	var playerPos: Vector2 = $".."/Marine.global_position
+	var weaponLight: Transform2D = $".."/Marine/WeaponSprite/WeaponLight.global_transform
+	return PackedFloat32Array([
+		NUM_MONSTERS,
 		IMAGE_SIZE,
 		monster_scale,
 		collision_radius,
@@ -150,6 +151,12 @@ func prepare_shader_params(delta: float) -> PackedFloat32Array:
 		max_vel,
 		playerPos.x,
 		playerPos.y,
+		game_time,
 		delta,
 		pause,
-		monster_color_mode])
+		monster_color_mode,
+		weaponLight.origin.x,
+		weaponLight.origin.y,
+		-weaponLight.y.x,
+		-weaponLight.y.y,
+	])
